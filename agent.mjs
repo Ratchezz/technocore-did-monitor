@@ -14,7 +14,8 @@ const RECEIPT_DOMAIN = `${RECEIPT_SCHEMA}\n`;
 const DEFAULT_OUTPUT_DIRECTORY = "technocore-status";
 
 export function input(name, { required = false, fallback = "" } = {}) {
-  const value = process.env[`INPUT_${name.toUpperCase()}`] ?? process.env[name.toUpperCase()] ?? fallback;
+  const supplied = process.env[`INPUT_${name.toUpperCase()}`] ?? process.env[name.toUpperCase()];
+  const value = supplied === undefined || supplied === "" ? fallback : supplied;
   if (required && !value) throw new Error(`Missing required input: ${name}`);
   return value;
 }

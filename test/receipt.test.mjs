@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createSignedReceipt, publicKeyFromDid, run, verifyReceiptObject } from "../agent.mjs";
+import { createSignedReceipt, input, publicKeyFromDid, run, verifyReceiptObject } from "../agent.mjs";
 
 const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -58,6 +58,17 @@ test("changing a signed receipt invalidates it", () => {
 
 test("a malformed DID is rejected", () => {
   assert.throws(() => publicKeyFromDid("did:key:not-ed25519"), /Ed25519/);
+});
+
+test("an empty optional GitHub input uses its fallback", () => {
+  const previous = process.env.INPUT_NOTE_URL;
+  process.env.INPUT_NOTE_URL = "";
+  try {
+    assert.equal(input("note_url", { fallback: "derived-note-url" }), "derived-note-url");
+  } finally {
+    if (previous === undefined) delete process.env.INPUT_NOTE_URL;
+    else process.env.INPUT_NOTE_URL = previous;
+  }
 });
 
 test("a monitor run writes a verifiable status bundle", { concurrency: false }, async () => {

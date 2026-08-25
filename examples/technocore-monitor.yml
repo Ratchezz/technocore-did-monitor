@@ -23,7 +23,7 @@ jobs:
       - name: Monitor Technocore identity
         id: guardian
         continue-on-error: true
-        uses: Ratchezz/technocore-did-monitor@v2
+        uses: Ratchezz/technocore-did-monitor@v2.0.1
         with:
           private_key_b64: ${{ secrets.TECHNOCORE_PRIVATE_KEY_B64 }}
           did: ${{ vars.TECHNOCORE_DID }}

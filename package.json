@@ -1,0 +1,14 @@
+{
+  "name": "technocore-did-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node agent.mjs",
+    "syntax": "node --check agent.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

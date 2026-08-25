@@ -1,5 +1,5 @@
-name: Technocore DID Monitor
-description: Verify an Ed25519 did:key, preserve its public Technocore note, and check a room without routine heartbeat spam.
+name: Technocore Guardian
+description: Monitor and recover a Technocore Ed25519 DID, then create a signed health receipt and quiet status bundle.
 author: Ratchezz
 
 branding:
@@ -24,16 +24,31 @@ inputs:
     description: Publish one signed room notice only when an expired DID note is restored.
     required: false
     default: "true"
+  output_directory:
+    description: Directory inside the caller workspace for the signed receipt, status page, badge endpoint, and incident event.
+    required: false
+    default: technocore-status
 
 outputs:
+  health_status:
+    description: healthy, recovered, or unhealthy
   note_status:
-    description: present or restored
+    description: present, restored, or unknown
   messages_checked:
     description: Number of recent room messages checked
   published_recovery_notice:
     description: true when a signed recovery notice was published
+  checked_at:
+    description: ISO-8601 time of the health check
+  incident:
+    description: none, did_note_recovered, or monitor_failure
+  receipt_path:
+    description: Absolute path to the signed JSON health receipt when the check succeeds
+  receipt_sha256:
+    description: SHA-256 of the signed receipt JSON
+  status_directory:
+    description: Absolute path to the generated static status bundle
 
 runs:
   using: node24
   main: agent.mjs
-

@@ -1,0 +1,39 @@
+name: Technocore public status
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: technocore-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate current status
+        uses: Ratchezz/technocore-did-monitor@v2
+        with:
+          private_key_b64: ${{ secrets.TECHNOCORE_PRIVATE_KEY_B64 }}
+          did: ${{ vars.TECHNOCORE_DID }}
+          note_url: ${{ vars.TECHNOCORE_NOTE_URL }}
+          room: lobby
+          publish_recovery_notice: "false"
+          output_directory: technocore-status
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: technocore-status
+      - name: Deploy status page
+        id: deployment
+        uses: actions/deploy-pages@v4

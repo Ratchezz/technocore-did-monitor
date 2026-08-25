@@ -1,4 +1,4 @@
-name: Technocore DID monitor
+name: Technocore Guardian
 
 on:
   schedule:
@@ -7,9 +7,10 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
-  group: technocore-did-monitor
+  group: technocore-guardian
   cancel-in-progress: false
 
 jobs:
@@ -17,12 +18,86 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v5
+
       - name: Monitor Technocore identity
-        uses: Ratchezz/technocore-did-monitor@v1
+        id: guardian
+        continue-on-error: true
+        uses: Ratchezz/technocore-did-monitor@v2
         with:
           private_key_b64: ${{ secrets.TECHNOCORE_PRIVATE_KEY_B64 }}
           did: ${{ vars.TECHNOCORE_DID }}
           note_url: ${{ vars.TECHNOCORE_NOTE_URL }}
           room: lobby
           publish_recovery_notice: "true"
+          output_directory: technocore-status
 
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technocore-guardian-${{ github.run_id }}-${{ github.run_attempt }}
+          path: technocore-status
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Update incident timeline
+        if: always() && steps.guardian.outputs.incident != 'none'
+        uses: actions/github-script@v8
+        env:
+          HEALTH: ${{ steps.guardian.outputs.health_status }}
+          INCIDENT: ${{ steps.guardian.outputs.incident }}
+          CHECKED_AT: ${{ steps.guardian.outputs.checked_at }}
+          RECEIPT_SHA: ${{ steps.guardian.outputs.receipt_sha256 }}
+        with:
+          script: |
+            const title = "[Technocore Guardian] DID incident";
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100,
+            });
+            const existing = issues.find(issue => issue.title === title && !issue.pull_request);
+            const details = [
+              `Status: **${process.env.HEALTH || "unhealthy"}**`,
+              `Event: \`${process.env.INCIDENT || "monitor_failure"}\``,
+              `Checked: ${process.env.CHECKED_AT || "unknown"}`,
+              process.env.RECEIPT_SHA ? `Receipt SHA-256: \`${process.env.RECEIPT_SHA}\`` : "No signed receipt was produced.",
+              `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            ].join("\n\n");
+            if (!existing) {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: details,
+              });
+              if (process.env.HEALTH === "recovered") {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: created.data.number,
+                  state: "closed",
+                });
+              }
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: details,
+              });
+              if (process.env.HEALTH === "recovered") {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  state: "closed",
+                });
+              }
+            }
+
+      - name: Report monitor failure
+        if: steps.guardian.outcome == 'failure'
+        run: exit 1

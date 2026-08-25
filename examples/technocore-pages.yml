@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Generate current status
-        uses: Ratchezz/technocore-did-monitor@v2
+        uses: Ratchezz/technocore-did-monitor@v2.0.1
         with:
           private_key_b64: ${{ secrets.TECHNOCORE_PRIVATE_KEY_B64 }}
           did: ${{ vars.TECHNOCORE_DID }}

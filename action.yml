@@ -1,0 +1,39 @@
+name: Technocore DID Monitor
+description: Verify an Ed25519 did:key, preserve its public Technocore note, and check a room without routine heartbeat spam.
+author: Ratchezz
+
+branding:
+  icon: activity
+  color: blue
+
+inputs:
+  private_key_b64:
+    description: Base64 encoding of the complete private-key.json identity file. Always pass this from GitHub Secrets.
+    required: true
+  did:
+    description: Public did:key expected to match the private identity.
+    required: true
+  note_url:
+    description: Optional complete Technocore DID note URL. When omitted, the current sharded note path is derived from the DID.
+    required: false
+  room:
+    description: Public room to check.
+    required: false
+    default: lobby
+  publish_recovery_notice:
+    description: Publish one signed room notice only when an expired DID note is restored.
+    required: false
+    default: "true"
+
+outputs:
+  note_status:
+    description: present or restored
+  messages_checked:
+    description: Number of recent room messages checked
+  published_recovery_notice:
+    description: true when a signed recovery notice was published
+
+runs:
+  using: node24
+  main: agent.mjs
+
